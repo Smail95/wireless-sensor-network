@@ -1,0 +1,77 @@
+window.onload = function () {
+
+var dps = [];
+  
+var chart = new CanvasJS.Chart("chartContainer", {
+	exportEnabled: true,
+	title :{
+		text: "ESP_32 MESURES"
+	},
+	axisY: {
+		includeZero: false,
+		title: "Mesures"
+	},
+	axisX: {
+		title: "Time"
+	},
+	data: [{
+		type: "spline",
+		markerSize: 0,
+		dataPoints: dps,
+		markerType: "square",
+	}]
+});
+
+var xVal = 0;
+var yVal = 100;
+var updateInterval = 1000;	// interval between two value
+var dataLength = 20; 		// number of dataPoints visible at any point
+var db_value;				// data read from database
+
+// Send request to database and retrieve the recent mesure
+function db_get_lastvalue(){
+	if (window.XMLHttpRequest) {
+		// code for IE7+, Firefox, Chrome, Opera, Safari
+		xmlhttp = new XMLHttpRequest();
+	} else {
+		// code for IE6, IE5
+		xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+	}
+	// Callback function: called when request received 
+	xmlhttp.onreadystatechange = function() {
+		if (this.readyState == 4 && this.status == 200) {
+			db_value =  this.responseText; // <<
+		}
+	};
+	// Select the type of mesures to plot
+	var form =  document.getElementById("mesure");
+	var table = form.options[form.selectedIndex].value;
+	
+	xmlhttp.open("GET","db_getdata.php?param="+table, true);
+	xmlhttp.send();
+}
+
+var updateChart = function (count) {					
+	count = count || 1;
+	// count is number of times loop runs to generate random dataPoints.
+	for (var j = 0; j < count; j++) {
+		// make query to database - data stored in <db_value>
+		db_get_lastvalue();
+	
+		yVal = parseFloat(db_value);
+		dps.push({
+			x: xVal,
+			y: yVal
+		});
+		xVal++;
+	}
+	if (dps.length > dataLength) {
+		dps.shift();
+	}
+	chart.render();
+};
+
+updateChart(dataLength); 
+setInterval(function(){ updateChart() }, updateInterval); 
+	
+}//window.onload 
